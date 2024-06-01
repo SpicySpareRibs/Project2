@@ -2,12 +2,18 @@
 
 Data is stored in an 8 by 8 matrix stored in the data heap?
 
-8 by 8 matrix. Each cell has two data points: first data (if mine: -1, else number of adjacent mines) second data (0 if unopened, 1 if opened, 2 if flagged) (can work with 1 word per data cell ig)
+8 by 8 matrix. stored as 64 adjacent words
+For each word: upper half contains data2, lower half contains data1 (use sh, lh to access change cell data)
+
+data2: 0 if unopened, 1 if opened, 2 if flagged
+data1: -1 if mine, 0-8 if adjacent to mine
 
 
-MAXIMIZE MACROS: printing and input, bit masking etc
+MAXIMIZE MACROS: whenever possible
 git repository notes: We can append/adjust 1 function at a time. as such clearly mark and separate created functions
 IMPORTANT: MAKE SURE LABELS ARE UNIQUE as per their intended use. (coordinate w team members so that no fxn label are common upon merging)
+Example: PrintGrid nested labels: PrintGridL1, PrintGridL1end etc.
+
 USE FUNCTIONS WITH STACK FRAMES
 
 Project GoalPoints:
