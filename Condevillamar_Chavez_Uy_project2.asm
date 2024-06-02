@@ -1,3 +1,80 @@
+.macro read_char	#TEMPORARY MACRO	[Asks character from user]
+	li $v0, 12
+	syscall
+	move $a0, $v0	#Stores read input to a0
+.end_macro
+
+.macro print_input	#temporary macro [Prints initial input]
+	li $v0, 4
+	la $a0, first_inp_str	
+	syscall
+	move $a0, $v0	#Stores read input to a0
+.end_macro
+
+
+# DO NOT MIND THE MACROS ABOVE [JUST USED FOR SANITY CHECKING]
+
+.macro read_ini_inp
+	li $v0, 8
+	la $a0, first_inp_str
+	la $a1, 50
+	syscall
+.end_macro
+
+
+.macro get_row		#macro for getting row from input [assumes that a0 has the input character]	#NOT YET TESTED
+	subi	$sp, $sp, 16
+	sw	$t0, 0($sp)
+	sw	$t1, 4($sp)	
+	sw	$t2, 8($sp)	
+	sw	$t3, 12($sp)
+	la $t0, chars_inp	#ptr to character input in .data
+	la $t1, coord_out	#ptr to coord output in .data
+	li $t2, 0		#loop ctr
+lgr:				#[l]oop_[g]et_[r]ow
+	lb $t3, 0($t0)		# load char from chars_inp
+				#NOTE: DO WE STILL NEED TO CONSIDER NULL OPS?
+	beq $a0, $t3, lgr_s
+	
+	addi $t0, $t0, 1	
+	addi $t1, $t1, 4	
+	j lgr
+lgr_s:	
+	lw 	$s0, 0($t1)		#s0 has the output	
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)	
+	lw	$t2, 8($sp)	
+	lw	$t3, 12($sp)
+	addi	$sp, $sp, 16
+.end_macro
+
+.macro get_col		#macro for getting col from input [assumes that a0 has the input character]	#NOT YET TESTED
+	subi	$sp, $sp, 16
+	sw	$t0, 0($sp)
+	sw	$t1, 4($sp)	
+	sw	$t2, 8($sp)	
+	sw	$t3, 12($sp)
+	la $t0, ints_inp	#ptr to character input in .data
+	la $t1, coord_out	#ptr to coord output in .data
+	li $t2, 0		#loop ctr
+lgc:				#[l]oop_[g]et_[c]olumn
+	lb $t3, 0($t0)		# load char from ints_inp
+				#NOTE: DO WE STILL NEED TO CONSIDER NULL OPS?
+	beq $a0, $t3, lgr_c
+	
+	addi $t0, $t0, 1	
+	addi $t1, $t1, 4	
+	j lgc
+lgr_c:	
+	lw 	$s1, 0($t1)		#s0 has the output	
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)	
+	lw	$t2, 8($sp)	
+	lw	$t3, 12($sp)
+	addi	$sp, $sp, 16
+.end_macro
+
+
 
 .macro printflag	#macro for printf("F");
 	li $v0, 4
@@ -25,11 +102,40 @@
 
 .text
 
+#Bookmark: Start of Main
 
 main:
+	read_ini_inp			#Asks for String Input [The Seven Substring Inital]
+	li $t0, 0
+	li $t1, 7
+	la $t3, first_inp_str
+get_row_col:				#Did not allocate stack frame here, should I?
+	beq $t0, $t1, exit_row_col
+	lb $a0, 0($t3)
+	get_row
+	addi $t3, $t3, 1
+	lb $a0, 0($t3)
+	get_col
+	move $a0, $s0
+	move $a1, $s1
+	## PUT YOUR OPERATIONS HERE [a0 has the row, a1 has the column]	
+	
+	
+	
+	## /-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-
+	addi $t3, $t3, 1
+	addi $t3, $t3, 1
+	addi $t0, $t0, 1
+	j get_row_col
+exit_row_col:				#NOTE: Used registers now has trash values(not used anymore)
+
+
+
 jal	printGrid
 li	$v0, 10
 syscall
+
+
 printGrid:
 addi	$sp, $sp, 44
 sw	$ra, 0($sp)
@@ -108,6 +214,22 @@ flag:	.asciiz "F"
 spac:		.asciiz "  "
 newline:	.asciiz "\n"
 underscore: .asciiz	"_"
+
+#CUT IN
+
+#REMOVE THIS[DURING FINAL OUTPUT]:
+Sample_prmp: .asciiz "Enter Input: "
+
+first_inp_str: .space 30				#30 for now
+chars_inp: .asciiz "ABCDEFGH"
+ints_inp: .asciiz "12345678"
+coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8			#Might be wrong due to shorthand declaration //HERE
+
+#CONTINUE HERE: DATA FOR INPUT COMPARISON
+#row_1: .asciiz "A"
+
+# CUT OUT
+
 #data1 is stored in lower 4 bytes, data2 is stored in upper4 bytes
 grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
