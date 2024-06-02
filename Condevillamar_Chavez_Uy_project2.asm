@@ -215,8 +215,6 @@ spac:		.asciiz "  "
 newline:	.asciiz "\n"
 underscore: .asciiz	"_"
 
-#CUT IN
-
 #REMOVE THIS[DURING FINAL OUTPUT]:
 Sample_prmp: .asciiz "Enter Input: "
 
@@ -225,10 +223,7 @@ chars_inp: .asciiz "ABCDEFGH"
 ints_inp: .asciiz "12345678"
 coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8			#Might be wrong due to shorthand declaration //HERE
 
-#CONTINUE HERE: DATA FOR INPUT COMPARISON
-#row_1: .asciiz "A"
 
-# CUT OUT
 
 #data1 is stored in lower 4 bytes, data2 is stored in upper4 bytes
 grid: 	.word	0x00020001 #(Flagged 1)
