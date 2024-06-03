@@ -91,6 +91,19 @@ lgr_c:
 	addi	$sp, $sp, 8
 .end_macro
 
+.macro get_offset	#macro for placing getting offset[assumes a0 has row, and a1 has col]
+	subi	$sp, $sp, 4
+	sw	$t0, 0($sp)	
+	
+	move $t0, $a0
+	sll $t0, $t0, 3
+	add $t0, $t0, $a1
+	sll $t0, $t0, 2
+	move $v0, $t0
+
+	lw	$t0, 0($sp)	
+	addi	$sp, $sp, 4
+.end_macro
 
 
 #Above are the input macros
@@ -142,6 +155,8 @@ get_row_col:				#Did not allocate stack frame here, should I?
 	get_col
 	move $a0, $s0
 	move $a1, $s1
+	subi $a0, $a0, 1
+	subi $a1, $a1, 1
 	## PUT YOUR OPERATIONS HERE [a0 has the row, a1 has the column]	
 	
 	place_bomb
@@ -252,8 +267,8 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	
-	.word	0x0000FFFF
 	.word	0
+	.word	0x0000FFFF
 	.word	0
 	.word	0
 	.word	0
@@ -284,7 +299,7 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	.word	0
-	.word	0	
+	.word	0
 	.word	0
 	.word	0
 	
