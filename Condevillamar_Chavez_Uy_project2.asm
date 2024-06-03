@@ -91,6 +91,19 @@ lgr_c:
 	addi	$sp, $sp, 8
 .end_macro
 
+.macro get_offset	#macro for placing getting offset[assumes a0 has row, and a1 has col]
+	subi	$sp, $sp, 4
+	sw	$t0, 0($sp)	
+	
+	move $t0, $a0
+	sll $t0, $t0, 3
+	add $t0, $t0, $a1
+	sll $t0, $t0, 2
+	move $v0, $t0
+
+	lw	$t0, 0($sp)	
+	addi	$sp, $sp, 4
+.end_macro
 
 
 #Above are the input macros
