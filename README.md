@@ -17,8 +17,7 @@ Example: PrintGrid nested labels: PrintGridL1, PrintGridL1end etc.
 USE FUNCTIONS WITH STACK FRAMES
 
 Project GoalPoints:
-0. Initializing:  Set up matrix data structure, create test cases for display, 
-   PrintFunction: Iteratively print and check each cell's data1 and data2
+0. Initializing: DONE 
 1. Given Input of Mine Locations: Be sure to be able to print the completed minefield (iteratively calculate all data1s, set data2 to 1s)
    //edge case consideration: cells at edges and corners have less calculations
 2. Implement Open Cell Functions: 
