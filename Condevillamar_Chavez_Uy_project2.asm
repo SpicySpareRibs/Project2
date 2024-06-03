@@ -74,11 +74,35 @@ lgr_c:
 	addi	$sp, $sp, 16
 .end_macro
 
+.macro place_bomb	#macro for placing bomb in the grid [assumes a0 has row, and a1 has col]
+	subi	$sp, $sp, 8
+	sw	$t0, 0($sp)
+	sw	$t1, 4($sp)	
+	
+	move $t0, $a0
+	sll $t0, $t0, 3
+	add $t0, $t0, $a1
+	sll $t0, $t0, 2
+	li $t1, 0x0000FFFF
+	sh $t1, grid($t0)
+		
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)	
+	addi	$sp, $sp, 8
+.end_macro
 
+
+
+#Above are the input macros
 
 .macro printflag	#macro for printf("F");
 	li $v0, 4
 	la $a0, flag
+	syscall
+.end_macro
+.macro printbomb	#macro for printf("B");
+	li $v0, 4
+	la $a0, bomb
 	syscall
 .end_macro
 .macro print_	#macro for printf("_");
@@ -120,7 +144,7 @@ get_row_col:				#Did not allocate stack frame here, should I?
 	move $a1, $s1
 	## PUT YOUR OPERATIONS HERE [a0 has the row, a1 has the column]	
 	
-	
+	place_bomb
 	
 	## /-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-
 	addi $t3, $t3, 1
@@ -137,7 +161,7 @@ syscall
 
 
 printGrid:
-addi	$sp, $sp, 44
+subi	$sp, $sp, 44
 sw	$ra, 0($sp)
 sw	$t0, 4($sp)	#i
 sw	$t1, 8($sp)	#j
@@ -166,7 +190,7 @@ lw	$t6, 28($sp)	#data1
 lw	$t7, 32($sp)	#comparator for data2
 lw	$a0, 36($sp)	
 lw	$v0, 40($sp)
-subi	$sp, $sp, 44
+addi	$sp, $sp, 44
 jr	$ra
 printGridloop2:
 blt	$t1, $t4, printGridCell
@@ -188,10 +212,17 @@ li	$t7, 2
 beq	$t5,$t7, PGprintF
 
 lh	$t6, grid($t3)
+
+li	$t7, -1
+beq	$t6, $t7, PGprintB
 move	$a0, $t6
 li	$v0, 1
 syscall
 j	PGL2_end
+
+PGprintB:
+printbomb
+j PGL2_end
 PGprint_:
 print_
 j PGL2_end
@@ -210,20 +241,6 @@ j	printGridloop2
 
 
 .data
-flag:	.asciiz "F"
-spac:		.asciiz "  "
-newline:	.asciiz "\n"
-underscore: .asciiz	"_"
-
-#REMOVE THIS[DURING FINAL OUTPUT]:
-Sample_prmp: .asciiz "Enter Input: "
-
-first_inp_str: .space 30				#30 for now
-chars_inp: .asciiz "ABCDEFGH"
-ints_inp: .asciiz "12345678"
-coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8			#Might be wrong due to shorthand declaration //HERE
-
-
 
 #data1 is stored in lower 4 bytes, data2 is stored in upper4 bytes
 grid: 	.word	0x00020001 #(Flagged 1)
@@ -235,7 +252,7 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	
-	.word	0
+	.word	0x0000FFFF
 	.word	0
 	.word	0
 	.word	0
@@ -297,4 +314,23 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	.word	0
+
+
+
+flag:	.asciiz "F"
+spac:		.asciiz "  "
+newline:	.asciiz "\n"
+underscore: .asciiz	"_"
+
+#REMOVE THIS[DURING FINAL OUTPUT]:
+Sample_prmp: .asciiz "Enter Input: "
+
+first_inp_str: .space 30				#30 for now
+chars_inp: .asciiz "ABCDEFGH"
+ints_inp: .asciiz "12345678"
+coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8			#Might be wrong due to shorthand declaration //HERE
+
+
+bomb:	.asciiz "B"
+
 	
