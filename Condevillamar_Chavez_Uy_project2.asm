@@ -142,6 +142,8 @@ get_row_col:				#Did not allocate stack frame here, should I?
 	get_col
 	move $a0, $s0
 	move $a1, $s1
+	subi $a0, $a0, 1
+	subi $a1, $a1, 1
 	## PUT YOUR OPERATIONS HERE [a0 has the row, a1 has the column]	
 	
 	place_bomb
@@ -252,8 +254,8 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	
-	.word	0x0000FFFF
 	.word	0
+	.word	0x0000FFFF
 	.word	0
 	.word	0
 	.word	0
@@ -284,7 +286,7 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	.word	0
-	.word	0	
+	.word	0
 	.word	0
 	.word	0
 	
