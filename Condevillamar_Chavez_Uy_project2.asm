@@ -21,6 +21,13 @@
 	syscall
 .end_macro
 
+.macro read_runtime_inp
+	li $v0, 8
+	la $a0, runtime_str
+	la $a1, 10
+	syscall
+.end_macro
+
 
 .macro get_row		#macro for getting row from input [assumes that a0 has the input character]	#NOT YET TESTED
 	subi	$sp, $sp, 16
@@ -48,7 +55,7 @@ lgr_s:
 	addi	$sp, $sp, 16
 .end_macro
 
-.macro get_col		#macro for getting col from input [assumes that a0 has the input character]	#NOT YET TESTED
+.macro get_col		#macro for getting col from input [assumes that a0 has the input character]
 	subi	$sp, $sp, 16
 	sw	$t0, 0($sp)
 	sw	$t1, 4($sp)	
@@ -66,13 +73,40 @@ lgc:				#[l]oop_[g]et_[c]olumn
 	addi $t1, $t1, 4	
 	j lgc
 lgr_c:	
-	lw 	$s1, 0($t1)		#s0 has the output	
+	lw 	$s1, 0($t1)		#s1 has the output	
 	lw	$t0, 0($sp)
 	lw	$t1, 4($sp)	
 	lw	$t2, 8($sp)	
 	lw	$t3, 12($sp)
 	addi	$sp, $sp, 16
 .end_macro
+
+.macro get_op		#macro for getting op from runtime input[assumes that a0 has the input character]
+	subi	$sp, $sp, 16
+	sw	$t0, 0($sp)
+	sw	$t1, 4($sp)	
+	sw	$t2, 8($sp)	
+	sw	$t3, 12($sp)
+	la $t0, char_op		#ptr to character operators in .data
+	la $t1, code_op		#ptr to code operator output in .data
+	li $t2, 0		#loop ctr
+lgo:
+	lb $t3, 0($t0)
+	beq $a0, $t3, lgo_c
+	addi $t0, $t0, 1	
+	addi $t1, $t1, 4	
+	j lgo
+
+lgo_c:
+	lw 	$s0, 0($t1)		#s0 has the output	
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)	
+	lw	$t2, 8($sp)	
+	lw	$t3, 12($sp)
+	addi	$sp, $sp, 16
+.end_macro
+
+
 
 .macro place_bomb	#macro for placing bomb in the grid [assumes a0 has row, and a1 has col]
 	subi	$sp, $sp, 8
@@ -103,6 +137,10 @@ lgr_c:
 
 	lw	$t0, 0($sp)	
 	addi	$sp, $sp, 4
+.end_macro
+
+.macro game_end		#used for game_end ops [print win/lose, and eventually ends]
+	
 .end_macro
 
 
@@ -157,20 +195,97 @@ get_row_col:				#Did not allocate stack frame here, should I?
 	move $a1, $s1
 	subi $a0, $a0, 1
 	subi $a1, $a1, 1
-	## PUT YOUR OPERATIONS HERE [a0 has the row, a1 has the column]	
 	
 	place_bomb
 	
-	## /-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-
 	addi $t3, $t3, 1
 	addi $t3, $t3, 1
 	addi $t0, $t0, 1
 	j get_row_col
-exit_row_col:				#NOTE: Used registers now has trash values(not used anymore)
+exit_row_col:				#NOTE: Used registers now has trash values(not used anymore);
+	jal	printGrid
+runtime_proper:				#Jump to here if going to next round inputs
+# CONTINUE HERE
+# CASES
+# O A1
+# F A1
+# U A1
+# DONE
+# Determine the Ops first
+# Remember: ERROR CHECKING
+	read_runtime_inp
+	la $t0, runtime_str	# t0 has ptr to runtime input [+1 for character traversal]
+Det_op:
+	lb $a0, 0($t0)		# first char of runtime input 
+	get_op			# at this point, operator code should be determined(s0) | NOTE: COMMENTS IN code_op LABEL 
+	
+	li $t1, 1
+	beq $s0, $t1, open_op
+	
+	li $t1, 2
+	beq $s0, $t1, flag_op
+	
+	li $t1, 3
+	beq $s0, $t1, unflag_op
+	
+	li $t1, 4
+	beq $s0, $t1, done_op
+	
+# curr used registers: t0, t1, s0
 
 
 
-jal	printGrid
+open_op:
+	addi $t0, $t0, 2	#[<OP> -> <SPACE> -> <ROW><COL> ] | Reason why Plus 2? Check left
+	lb $a0, 0($t0)
+	get_row
+	addi $t0, $t0, 1
+	lb $a0, 0($t0)
+	get_col
+	move $a0, $s0
+	move $a1, $s1
+	subi $a0, $a0, 1
+	subi $a1, $a1, 1
+	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
+	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
+	j temp_end
+
+flag_op:
+	addi $t0, $t0, 2	#[<OP> -> <SPACE> -> <ROW><COL> ] | Reason why Plus 2? Check left
+	lb $a0, 0($t0)
+	get_row
+	addi $t0, $t0, 1
+	lb $a0, 0($t0)
+	get_col
+	move $a0, $s0
+	move $a1, $s1
+	subi $a0, $a0, 1
+	subi $a1, $a1, 1
+	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
+	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
+	j temp_end
+
+unflag_op:
+	addi $t0, $t0, 2	#[<OP> -> <SPACE> -> <ROW><COL> ] | Reason why Plus 2? Check left
+	lb $a0, 0($t0)
+	get_row
+	addi $t0, $t0, 1
+	lb $a0, 0($t0)
+	get_col
+	move $a0, $s0
+	move $a1, $s1
+	subi $a0, $a0, 1
+	subi $a1, $a1, 1
+	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
+	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
+	j temp_end
+
+done_op:
+	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
+	j temp_end
+
+temp_end: 	#EDIT THIS LABEL WHEN DONE CODING OPERATIONS | TO REMOVE!
+#jal	printGrid
 li	$v0, 10
 syscall
 
@@ -340,10 +455,13 @@ underscore: .asciiz	"_"
 #REMOVE THIS[DURING FINAL OUTPUT]:
 Sample_prmp: .asciiz "Enter Input: "
 
-first_inp_str: .space 30				#30 for now
+first_inp_str: .space 30			#30 for now	[theoretically should be 20]
+runtime_str: .space 10				#10 for now	[theoretically should be 5]
 chars_inp: .asciiz "ABCDEFGH"
 ints_inp: .asciiz "12345678"
-coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8			#Might be wrong due to shorthand declaration //HERE
+coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8	# Index-based correlation of asciiz from above two lines
+char_op: .asciiz "OFUD"
+code_op: .word 1, 2, 3, 4			# 1 = open, 2 = flag, 3 = unflag, 4 = done
 
 
 bomb:	.asciiz "B"
