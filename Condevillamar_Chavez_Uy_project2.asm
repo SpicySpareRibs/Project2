@@ -173,7 +173,112 @@ lgo_c:
 	syscall
 .end_macro
 
+.macro print_content($num)
+	subi	$sp, $sp, 32
+	sw	$a0, 0($sp)
+	li	$v0, 1
+	move	$a0, $num
+	syscall
+	lw	$a0, 0($sp)
+	addi	$sp, $sp, 32
+.end_macro
 
+.macro isbomb
+	subi	$sp, $sp, 32
+	sw	$t0, 0($sp)		# index of current cell
+	sw	$t1, 4($sp)		# index of cell being checked
+	sw	$t2, 8($sp)		# stores value of cell
+	
+	sll	$t1, $t1, 2
+	sll	$t0, $t0, 2
+	
+	lh	$t2, grid($t1)
+	bne	$t2, -1, not_bomb
+	lh	$t1, grid($t0)		# t1 becomes container for value of current cell
+	addi	$t1, $t1, 1		# add 1 to the number of nearby mines
+	sh	$t1, grid($t0)
+not_bomb:				# if checked cell is not a bomb do nothing
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)	
+	lw	$t2, 8($sp)
+	addi	$sp, $sp, 32
+.end_macro 
+
+.macro get_adjacency 	#macro for calculate for mine adjacency;
+	subi	$sp, $sp, 32
+	sw	$t0, 0($sp)		# index of current cell
+	sw	$t1, 4($sp)		# index of cell being checked
+	sw	$t2, 8($sp)		# stores value of cell
+	sw	$t3, 12($sp)		# remainder
+	sw	$t4, 16($sp)		# nahutdan na kog variables
+	sw	$t5, 20($sp)		# contains number 8 for div
+	
+	addi	$t5, $0, 8
+	addi	$t0, $0, 0		
+adjloop:			
+	beq	$t0, 64, adjloop_end
+	sll	$t4, $t0, 2
+	lh	$t2, grid($t4)
+	beq	$t2, -1, last_col	# if current cell is a bomb proceed to next cell
+	div	$t0, $t5
+	mfhi	$t3
+#	bne	$t3, 0, notnewline	#for checking
+#	printnewline
+notnewline:
+	blt	$t0, 8, top_row		# if currently not at the first row, check top cells
+	subi	$t1, $t0, 8
+	isbomb				# checking top cell
+	
+	beq	$t3, 0, left_top	# if not in the first column, check top left corner
+	subi	$t1, $t0, 9
+	isbomb
+	
+left_top:
+	beq	$t3, 7, top_row		# if not in the last column, check top right corner
+	subi	$t1, $t0, 7
+	isbomb
+	
+top_row:				
+	beq	$t3, 0, first_col	# if currently not at the first column, check left cell
+	subi	$t1, $t0, 1
+	isbomb
+	
+first_col:
+	bgt	$t0, 55, bottom_row	# if currently not at the last row, check bottom cell
+	addi	$t1, $t0, 8
+	isbomb
+	
+bottom_row:
+	beq	$t3, 7, last_col	# if currently not at the last column, check right cell
+	addi	$t1, $t0, 1
+	isbomb
+	
+	beq	$t3, 0, left_bottom	# if not in the first column, check bottom left corner
+	addi	$t1, $t0, 7
+	isbomb
+	
+left_bottom:
+	beq	$t3, 7, last_col	# if not in the last column, check bottom right corner
+	addi	$t1, $t0, 9
+	isbomb
+
+last_col:
+#	sll	$t4, $t0, 2		#for checking
+#	lh	$t2, grid($t4)
+#	print_content($t2)		
+#	printspace
+	addi	$t0, $t0, 1
+	j	adjloop
+	
+adjloop_end:
+	lw	$t0, 0($sp)
+	lw	$t1, 4($sp)
+	lw	$t2, 8($sp)
+	lw	$t3, 12($sp)	
+	lw	$t4, 16($sp)
+	lw	$t5, 20($sp)
+	addi	$sp, $sp, 32
+.end_macro
 
 .text
 
@@ -373,17 +478,8 @@ j	printGridloop2
 .data
 
 #data1 is stored in lower 4 bytes, data2 is stored in upper4 bytes
-grid: 	.word	0x00020001 #(Flagged 1)
+grid: 	.word	0
 	.word	0
-	.word	0
-	.word	0
-	.word	0
-	.word	0
-	.word	0
-	.word	0
-	
-	.word	0
-	.word	0x0000FFFF
 	.word	0
 	.word	0
 	.word	0
@@ -407,7 +503,16 @@ grid: 	.word	0x00020001 #(Flagged 1)
 	.word	0
 	.word	0
 	.word	0
-	.word	0x000010005 #(Flagged 5)
+	.word	0
+	
+	.word	0
+	.word	0
+	.word	0
+	.word	0
+	.word	0
+	.word	0
+	.word	0
+	.word	0
 	
 	.word	0
 	.word	0
