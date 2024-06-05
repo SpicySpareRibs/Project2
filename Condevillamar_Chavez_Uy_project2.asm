@@ -4,15 +4,36 @@
 	move $a0, $v0	#Stores read input to a0
 .end_macro
 
-.macro print_input	#temporary macro [Prints initial input]
-	li $v0, 4
-	la $a0, first_inp_str	
-	syscall
-	move $a0, $v0	#Stores read input to a0
-.end_macro
-
 
 # DO NOT MIND THE MACROS ABOVE [JUST USED FOR SANITY CHECKING]
+
+.macro print_win	
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+
+	li $v0, 4
+	la $a0, gw_res	
+	syscall
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
+
+.macro print_lose	
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+
+	li $v0, 4
+	la $a0, gl_res	
+	syscall
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
 
 .macro read_ini_inp
 	li $v0, 8
@@ -27,6 +48,77 @@
 	la $a1, 10
 	syscall
 .end_macro
+
+.macro add_rnd_ctr			#VERIFIED TO WORK AT RND 1
+	subi	$sp, $sp, 4
+	sw	$t0, 0($sp)
+	lw	$t0, rnd_ctr
+	addi	$t0, $t0, 1
+	sw	$t0, rnd_ctr
+	lw	$t0, 0($sp)
+	addi	$sp, $sp, 4
+.end_macro
+
+.macro print_rnd	
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+	
+	li $v0, 4
+	la $a0, rnd_str
+	syscall
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
+
+.macro print_rnd_ctr			#VERIFIED TO WORK AT RND 1
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+	
+	print_rnd
+	lw	$a0, rnd_ctr
+	li	$v0, 1
+	syscall
+	printnewline
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
+
+.macro print_ftob	
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+	
+	li $v0, 4
+	la $a0, ftob_res
+	syscall
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
+
+.macro print_ftob_ctr			#VERIFIED TO WORK AT RND 1
+	subi	$sp, $sp, 8
+	sw	$a0, 0($sp)
+	sw	$v0, 4($sp)
+	
+	lw	$a0, f_to_b
+	li	$v0, 1
+	syscall
+	print_ftob
+	printnewline
+	
+	lw	$a0, 0($sp)
+	lw	$v0, 4($sp)
+	addi	$sp, $sp, 8
+.end_macro
+
 
 
 .macro get_row		#macro for getting row from input [assumes that a0 has the input character]	#NOT YET TESTED
@@ -125,7 +217,7 @@ lgo_c:
 	addi	$sp, $sp, 8
 .end_macro
 
-.macro get_offset	#macro for placing getting offset[assumes a0 has row, and a1 has col]
+.macro get_offset	#macro for getting offset[assumes a0 has row, and a1 has col]
 	subi	$sp, $sp, 4
 	sw	$t0, 0($sp)	
 	
@@ -139,8 +231,30 @@ lgo_c:
 	addi	$sp, $sp, 4
 .end_macro
 
-.macro game_end		#used for game_end ops [print win/lose, and eventually ends]
+.macro game_end		#used for game_end ops [print win/lose, and eventually ends] | checls all cells iteratively {void fxn}
+	#CONTINUE HERE
+	li	$t0, 7			# NO NEED TO ALLOCATE STACK AS THIS IS CALLED IFF IT IS THE END
+	lw	$t1, f_to_b
+	beq	$t0, $t1, game_win
+	j game_lost
 	
+game_lost:
+	#PLACEHOLDER
+	print_lose			#NOT SURE IF CALLING A MACRO INSIDE A MACRO IS CORRECT
+	printnewline
+	print_ftob_ctr			#print bomb to flg result here
+	# print uncovered grid with X's 
+	j game_res
+game_win:
+	print_win			#NOT SURE IF CALLING A MACRO INSIDE A MACRO IS CORRECT
+	printnewline
+	print_ftob_ctr			# print bomb to flg result here
+	# print uncovered grid with X's 
+	#ASSUMED TO GO TO game_res
+game_res:	
+
+	li	$v0, 10
+	syscall
 .end_macro
 
 
@@ -308,9 +422,11 @@ get_row_col:				#Did not allocate stack frame here, should I?
 	addi $t0, $t0, 1
 	j get_row_col
 exit_row_col:				#NOTE: Used registers now has trash values(not used anymore);
-	jal	printGrid
+	get_adjacency
+	print_rnd_ctr
+	#add_rnd_ctr
+#jal	printGrid
 runtime_proper:				#Jump to here if going to next round inputs
-# CONTINUE HERE
 # CASES
 # O A1
 # F A1
@@ -318,8 +434,20 @@ runtime_proper:				#Jump to here if going to next round inputs
 # DONE
 # Determine the Ops first
 # Remember: ERROR CHECKING
+	jal printGrid
+	add_rnd_ctr
+	print_rnd_ctr
 	read_runtime_inp
 	la $t0, runtime_str	# t0 has ptr to runtime input [+1 for character traversal]
+	#add_rnd_ctr		#increments round counter
+	j Det_op
+	
+in_ip_case:
+	jal printGrid
+	print_rnd_ctr
+	read_runtime_inp
+	la $t0, runtime_str
+	# Assumed to go to Det_op [SHOULD NOT INCREASE THE ROUND CTR]
 Det_op:
 	lb $a0, 0($t0)		# first char of runtime input 
 	get_op			# at this point, operator code should be determined(s0) | NOTE: COMMENTS IN code_op LABEL 
@@ -353,7 +481,7 @@ open_op:
 	subi $a1, $a1, 1
 	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
 	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
-	j temp_end
+	j openCell		# ALL J temp_end ARE TEMPORARY [ALL OPS]
 
 flag_op:
 	addi $t0, $t0, 2	#[<OP> -> <SPACE> -> <ROW><COL> ] | Reason why Plus 2? Check left
@@ -366,9 +494,38 @@ flag_op:
 	move $a1, $s1
 	subi $a0, $a0, 1
 	subi $a1, $a1, 1
-	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
-	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
-	j temp_end
+	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement | only v0 is curr_used
+	lh $t0, grid+2($v0)	# Valid flag iff, no> flag <7 && index is unopened
+	li $t1, 0
+	beq $t0, $t1, vld_flg
+	j invld_flg
+	
+vld_flg:			#must now check if flagged is < 7
+	li $t1, 7
+	lw $t2, flg_ctr
+	bge $t2, $t1, invld_flg
+	addi $t2, $t2, 1
+	sw $t2, flg_ctr
+	li $t0, 2
+	sh $t0, grid+2($v0)	# REMEMBER TO UPDATE Flag to Bomb Correspondence
+	
+	lh $t0, grid($v0)	# t0 has data 1
+	li $t1, -1
+	beq $t0, $t1, inc_ftob
+	
+	j	f_prt
+inc_ftob:
+	lw $t2, f_to_b		# increment ftob corr
+	addi $t2, $t2, 1
+	sw $t2, f_to_b
+
+f_prt:
+	
+	#jal	printGrid
+	j	runtime_proper
+	
+invld_flg:	
+	j in_ip_case
 
 unflag_op:
 	addi $t0, $t0, 2	#[<OP> -> <SPACE> -> <ROW><COL> ] | Reason why Plus 2? Check left
@@ -386,8 +543,8 @@ unflag_op:
 	j temp_end
 
 done_op:
-	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
-	j temp_end
+	game_end	
+	
 
 temp_end: 	#EDIT THIS LABEL WHEN DONE CODING OPERATIONS | TO REMOVE!
 #jal	printGrid
@@ -469,6 +626,142 @@ PGL2_end:
 printspace
 addi	$t1, $t1, 1
 j	printGridloop2
+
+openCell: 
+subi $sp, $sp, 44
+sw	$a0, 4($sp)	#ROW COORD
+sw	$a1, 8($sp)	#COL COORD
+sw	$v0, 12($sp)	#OFFSET
+sw	$t0, 16($sp)	#data2
+sw	$t1 20($sp) 	#data1
+sw	$t2,24($sp)	#placeholder for -1
+sw	$t3,28($sp)	#placeholder for row coord
+sw	$t4,32($sp)	#placeholder for col coord
+#36	for t3
+#40	for t4
+
+lh	$t0, grid+2($v0)
+bne	$t0, $0, openCellInvalid
+
+lh	$t1, grid($v0)
+li	$t2, -1
+beq	$t0, $t2, openCellMine
+
+bgtz	$t0, openCellNormal
+
+#cell is 0
+move	$t3, $a0
+move	$t4, $a1
+
+sw	$t3, 36($sp)
+sw	$t3, 40($sp)
+
+addi	$a0, $t3, -1 #top left
+addi	$a1, $t4, -1 
+
+#jal	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, -1 #top
+addi	$a1, $t4, 0
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, -1 #top right
+addi	$a1, $t4, 1
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, 0 #right
+addi	$a1, $t4, 1
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, 1 #bottom right
+addi	$a1, $t4, 1
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, 1 #bottom
+addi	$a1, $t4, 0
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, -1 #bottom left
+addi	$a1, $t4, -1
+
+#jal 	recursiveOpen
+
+lw	$t3, 36($sp)
+lw	$t4, 40($sp)
+
+addi	$a0, $t3, -1 #top right
+addi	$a1, $t4, 0
+
+#jal 	recursiveOpen
+
+
+openCellNormal:
+li	$t2, 1
+lw	$v0, 12($sp)
+sh	$t2, grid+2($v0)
+
+lw	$a0, 4($sp)	#ROW COORD
+lw	$a1, 8($sp)	#COL COORD
+lw	$v0, 12($sp)	#OFFSET
+lw	$t0, 16($sp)	#data2
+lw	$t1 20($sp) 	#data1
+lw	$t2,24($sp)	#placeholder for -1
+lw	$t3,28($sp)	#placeholder for row coord
+lw	$t4,32($sp)	#placeholder for col coord
+#36	for t3
+#40	for t4
+addi	$sp, $sp, 44
+j 	runtime_proper
+openCellInvalid:
+lw	$a0, 4($sp)	#ROW COORD
+lw	$a1, 8($sp)	#COL COORD
+lw	$v0, 12($sp)	#OFFSET
+lw	$t0, 16($sp)	#data2
+lw	$t1 20($sp) 	#data1
+lw	$t2,24($sp)	#placeholder for -1
+lw	$t3,28($sp)	#placeholder for row coord
+lw	$t4,32($sp)	#placeholder for col coord
+#36	for t3
+#40	for t4
+addi	$sp, $sp, 44
+j 	in_ip_case
+openCellMine:
+lw	$a0, 4($sp)	#ROW COORD
+lw	$a1, 8($sp)	#COL COORD
+lw	$v0, 12($sp)	#OFFSET
+lw	$t0, 16($sp)	#data2
+lw	$t1 20($sp) 	#data1
+lw	$t2,24($sp)	#placeholder for -1
+lw	$t3,28($sp)	#placeholder for row coord
+lw	$t4,32($sp)	#placeholder for col coord
+#36	for t3
+#40	for t4
+addi	$sp, $sp, 44
+game_end
+
 
 
 
@@ -567,8 +860,19 @@ ints_inp: .asciiz "12345678"
 coord_out: .word 1, 2, 3, 4, ,5, 6, 7, 8	# Index-based correlation of asciiz from above two lines
 char_op: .asciiz "OFUD"
 code_op: .word 1, 2, 3, 4			# 1 = open, 2 = flag, 3 = unflag, 4 = done
+f_to_b: .word 0					# Flag to Bomb correspondence
+rnd_ctr: .word 0				# Round Counter
+rnd_str: .asciiz "ROUND "
+flg_ctr: .word 0				# Glbl flag ctr, compare it to 7 for flag limitation
 
 
 bomb:	.asciiz "B"
+
+#GAME RESULT PRINTING BELOW
+
+gw_res:	.asciiz	"WIN!"
+gl_res:	.asciiz	"LOSE!"
+ftob_res: .asciiz " of 7 bombs"
+
 
 	
