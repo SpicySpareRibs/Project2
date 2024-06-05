@@ -673,75 +673,56 @@ lh	$t1, grid($v0)
 li	$t2, -1
 beq	$t1, $t2, openCellMine
 
-bgtz	$t0, openCellNormal
+bgt	$t1, 0, openCellNormal
+
 
 #cell is 0
 move	$t3, $a0
 move	$t4, $a1
 
 sw	$t3, 36($sp)
-sw	$t3, 40($sp)
+sw	$t4, 40($sp)
 
 addi	$a0, $t3, -1 #top left
 addi	$a1, $t4, -1 
 
-#jal	recursiveOpen
-
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+jal		recursiveOpen
 
 addi	$a0, $t3, -1 #top
 addi	$a1, $t4, 0
 
-#jal 	recursiveOpen
-
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+jal 	recursiveOpen
 
 addi	$a0, $t3, -1 #top right
 addi	$a1, $t4, 1
 
-#jal 	recursiveOpen
+jal 	recursiveOpen
 
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+addi	$a0, $t3, 0 #left
+addi	$a1, $t4, -1
+
+jal 	recursiveOpen
 
 addi	$a0, $t3, 0 #right
 addi	$a1, $t4, 1
 
-#jal 	recursiveOpen
+jal 	recursiveOpen
 
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+addi	$a0, $t3, 1	#bottom left
+addi	$a1, $t4, -1
 
-addi	$a0, $t3, 1 #bottom right
-addi	$a1, $t4, 1
-
-#jal 	recursiveOpen
-
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+jal 	recursiveOpen
 
 addi	$a0, $t3, 1 #bottom
 addi	$a1, $t4, 0
 
-#jal 	recursiveOpen
+jal 	recursiveOpen
 
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
+addi	$a0, $t3, 1 #bottom right
+addi	$a1, $t4, 1
 
-addi	$a0, $t3, -1 #bottom left
-addi	$a1, $t4, -1
+jal 	recursiveOpen
 
-#jal 	recursiveOpen
-
-lw	$t3, 36($sp)
-lw	$t4, 40($sp)
-
-addi	$a0, $t3, -1 #top right
-addi	$a1, $t4, 0
-
-#jal 	recursiveOpen
 
 
 openCellNormal:
@@ -788,6 +769,84 @@ lw	$t4,32($sp)	#placeholder for col coord
 addi	$sp, $sp, 44
 game_end
 
+
+recursiveOpen:				# a0 as row, a1 as column 
+	subi	$sp, $sp, 32
+	sw	$t0, 0($sp)		# will hold data1 of current cell
+	sw	$t1, 4($sp)		# will hold data2 of current cell
+	sw	$t2, 8($sp)		# will hold row number of current cell
+	sw	$t3, 12($sp)		# will hold column number of current cell
+	sw	$ra, 28($sp)		# will hold return address for recursion purposes
+	
+	addi	$t2, $a0, 0
+	addi	$t3, $a1, 0
+
+	blt	$a0, 0, invalid_cell	# checking if cell within bounds
+	blt	$a1, 0, invalid_cell
+	bgt	$a0, 7, invalid_cell
+	bgt	$a1, 7, invalid_cell
+	
+	
+	get_offset			# offset is stored in v0
+	
+	lh	$t0, grid($v0)		# fetching data1
+	addi	$v0, $v0, 2
+	lh	$t1, grid($v0)		# fetching data2
+	
+	beq	$t1, 1, invalid_cell	# if cell is already opened
+	beq	$t1, 2, invalid_cell	# if cell is flagged
+	beq	$t0, -1, invalid_cell	# if cell is a mine
+	bne	$t0, 0, open_cell
+	
+	addi	$t1, $0, 1		# setting cell to opened before checking other cells 
+	sh	$t1, grid($v0)		# done to prevent infinite recursion
+	
+	addi	$a0, $t2, -1
+	addi	$a1, $t3, -1
+	jal 	recursiveOpen
+	
+	
+	addi	$a0, $t2, -1
+	addi	$a1, $t3, 0
+	jal 	recursiveOpen
+
+	addi	$a0, $t2, -1
+	addi	$a1, $t3, 1
+	jal	recursiveOpen
+	
+	addi	$a0, $t2, 0
+	addi	$a1, $t3, -1
+	jal 	recursiveOpen
+	
+	addi	$a0, $t2, 0
+	addi	$a1, $t3, 1
+	jal	recursiveOpen
+	
+	addi	$a0, $t2, 1
+	addi	$a1, $t3, -1
+	jal	recursiveOpen
+	
+	addi	$a0, $t2, 1
+	addi	$a1, $t3, 0
+	jal	recursiveOpen
+	
+	addi	$a0, $t2, 1
+	addi	$a1, $t3, 1
+	jal	recursiveOpen
+	
+	j 	invalid_cell
+open_cell:				# setting data2 of cell to be opened
+	addi	$t1, $0, 1
+	sh	$t1, grid($v0)		
+			
+invalid_cell:				# if cell is invalid return
+	lw	$t0, 0($sp)		
+	lw	$t1, 4($sp)
+	lw	$t2, 8($sp)		
+	lw	$t3, 12($sp)
+	lw	$ra, 28($sp)
+	addi	$sp, $sp, 32
+	jr	$ra
 
 
 
