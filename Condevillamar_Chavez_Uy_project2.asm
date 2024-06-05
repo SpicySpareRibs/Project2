@@ -645,7 +645,7 @@ bne	$t0, $0, openCellInvalid
 
 lh	$t1, grid($v0)
 li	$t2, -1
-beq	$t0, $t2, openCellMine
+beq	$t1, $t2, openCellMine
 
 bgtz	$t0, openCellNormal
 
