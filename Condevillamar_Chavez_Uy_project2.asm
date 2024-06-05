@@ -243,16 +243,16 @@ game_lost:
 	print_lose			#NOT SURE IF CALLING A MACRO INSIDE A MACRO IS CORRECT
 	printnewline
 	print_ftob_ctr			#print bomb to flg result here
-	# print uncovered grid with X's 
+	 
 	j game_res
 game_win:
 	print_win			#NOT SURE IF CALLING A MACRO INSIDE A MACRO IS CORRECT
 	printnewline
 	print_ftob_ctr			# print bomb to flg result here
-	# print uncovered grid with X's 
+	 
 	#ASSUMED TO GO TO game_res
 game_res:	
-
+	jal printGridX
 	li	$v0, 10
 	syscall
 .end_macro
@@ -268,6 +268,11 @@ game_res:
 .macro printbomb	#macro for printf("B");
 	li $v0, 4
 	la $a0, bomb
+	syscall
+.end_macro
+.macro printX	#macro for printf("X");
+	li $v0, 4
+	la $a0, X
 	syscall
 .end_macro
 .macro print_	#macro for printf("_");
@@ -520,6 +525,7 @@ inc_ftob:
 	sw $t2, f_to_b
 
 f_prt:
+	
 	#jal	printGrid
 	j	runtime_proper
 	
@@ -538,35 +544,8 @@ unflag_op:
 	subi $a0, $a0, 1
 	subi $a1, $a1, 1
 	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
-	lh $t0, grid+2($v0)	# Valid flag iff, no> flag >0 && index is unopened
-	li $t1, 2
-	beq $t0, $t1, vld_uflg
-	j invld_uflg
-vld_uflg:
-	li $t1, 0
-	lw $t2, flg_ctr
-	ble $t2, $t1, invld_uflg
-	subi $t2, $t2, 1
-	sw $t2, flg_ctr
-	li $t0, 0
-	sh $t0, grid+2($v0)	# REMEMBER TO UPDATE Flag to Bomb Correspondence
-	
-	lh $t0, grid($v0)	# t0 has data 1
-	li $t1, -1
-	beq $t0, $t1, dec_ftob
-	
-	j	f_uprt
-dec_ftob:
-	lw $t2, f_to_b		# increment ftob corr
-	subi $t2, $t2, 1
-	sw $t2, f_to_b
-	
-f_uprt:
-	j	runtime_proper
-
-invld_uflg:
 	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
-	j in_ip_case
+	j temp_end
 
 done_op:
 	game_end	
@@ -790,6 +769,81 @@ game_end
 
 
 
+printGridX:
+subi	$sp, $sp, 44
+sw	$ra, 0($sp)
+sw	$t0, 4($sp)	#i
+sw	$t1, 8($sp)	#j
+sw	$t2, 12($sp)	#celldata
+sw	$t3, 16($sp)	#offset
+sw	$t4, 20($sp)	#8
+sw	$t5, 24($sp)	#data2
+sw	$t6, 28($sp)	#data1
+sw	$t7, 32($sp)	#comparator for data2
+sw	$a0, 36($sp)	
+sw	$v0, 40($sp)
+li	$t0, 0
+li	$t4, 8
+printGridloop1X:
+li	$t1, 0
+blt	$t0, $t4,printGridloop2X 
+#end print	
+lw	$ra, 0($sp)
+lw	$t0, 4($sp)	#i
+lw	$t1, 8($sp)	#j
+lw	$t2, 12($sp)	#celldata
+lw	$t3, 16($sp)	#offset
+lw	$t4, 20($sp)	#8
+lw	$t5, 24($sp)	#data2
+lw	$t6, 28($sp)	#data1
+lw	$t7, 32($sp)	#comparator for data2
+lw	$a0, 36($sp)	
+lw	$v0, 40($sp)
+addi	$sp, $sp, 44
+jr	$ra
+printGridloop2X:
+blt	$t1, $t4, printGridCellX
+#endrow
+printnewline
+addi	$t0, $t0, 1
+j printGridloop1X
+
+printGridCellX:
+move	$t3, $t0
+sll	$t3, $t3, 3
+add	$t3, $t3, $t1
+sll	$t3, $t3, 2
+
+lh	$t5, grid+2($t3)
+lh	$t6, grid($t3)
+li	$t7, 2
+beq	$t5, $t7, PrintGridCaseFlag
+
+li	$t7, -1
+beq	$t6, $t7, PCGBX
+
+move	$a0, $t6
+li	$v0, 1
+syscall
+j	PGL2X_end
+
+PrintGridCaseFlag:
+li	$t7, -1
+bne	$t6, $t7, PGCFX
+
+PCGBX:
+printbomb
+j PGL2X_end
+
+PGCFX:
+printX
+j PGL2X_end
+
+PGL2X_end:
+printspace
+addi	$t1, $t1, 1
+j	printGridloop2X
+
 
 
 
@@ -893,6 +947,7 @@ flg_ctr: .word 0				# Glbl flag ctr, compare it to 7 for flag limitation
 
 
 bomb:	.asciiz "B"
+X:	.asciiz "X"
 
 #GAME RESULT PRINTING BELOW
 
