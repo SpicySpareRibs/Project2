@@ -520,7 +520,6 @@ inc_ftob:
 	sw $t2, f_to_b
 
 f_prt:
-	
 	#jal	printGrid
 	j	runtime_proper
 	
@@ -539,8 +538,35 @@ unflag_op:
 	subi $a0, $a0, 1
 	subi $a1, $a1, 1
 	get_offset		# at this point, v0 has the target grid index | DO ACCOUNT FOR data1 & data2 placement
+	lh $t0, grid+2($v0)	# Valid flag iff, no> flag >0 && index is unopened
+	li $t1, 2
+	beq $t0, $t1, vld_uflg
+	j invld_uflg
+vld_uflg:
+	li $t1, 0
+	lw $t2, flg_ctr
+	ble $t2, $t1, invld_uflg
+	subi $t2, $t2, 1
+	sw $t2, flg_ctr
+	li $t0, 0
+	sh $t0, grid+2($v0)	# REMEMBER TO UPDATE Flag to Bomb Correspondence
+	
+	lh $t0, grid($v0)	# t0 has data 1
+	li $t1, -1
+	beq $t0, $t1, dec_ftob
+	
+	j	f_uprt
+dec_ftob:
+	lw $t2, f_to_b		# increment ftob corr
+	subi $t2, $t2, 1
+	sw $t2, f_to_b
+	
+f_uprt:
+	j	runtime_proper
+
+invld_uflg:
 	#PLACEHOLDER | NOTE: Error Checking first, before doing said operation
-	j temp_end
+	j in_ip_case
 
 done_op:
 	game_end	
